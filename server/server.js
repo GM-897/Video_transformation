@@ -4,7 +4,12 @@ const express = require('express');
 const cloudinary = require('cloudinary').v2;
 const axios = require('axios');
 const cors = require('cors');
+// const authRoutes = require('./routes/auth');
+const mongoose = require('mongoose');
 const { fal } = require("@fal-ai/client");
+const User = require('./models/User');
+const { ClerkExpressRequireAuth } = require('@clerk/clerk-sdk-node');
+
 
 const app = express();
 app.use(cors());
@@ -20,6 +25,55 @@ cloudinary.config({
 // Configure Fal AI
 fal.config({
   credentials: process.env.FAL_API_KEY
+});
+mongoose.connect(process.env.MONGODB_URI)
+  .then(() => console.log('Connected to MongoDB'))
+  .catch(err => console.error('MongoDB connection error:', err));
+
+  async function findOrCreateFromClerk(userData) {
+    try {
+        let user = await User.findOne({ clerkId: userData.id });
+        if (!user) {
+            user = await User.create({
+                clerkId: userData.id,
+                email: userData.emailAddresses[0].emailAddress, 
+                firstName: userData.firstName,
+                lastName: userData.lastName,
+                profileImageUrl: userData.profileImageUrl
+            });
+        }
+        return user;
+    } catch (error) {
+        console.error("Error in findOrCreateFromClerk:", error);
+        throw error;
+    }
+}
+
+// app.use('/api/auth', authRoutes);
+const requireAuth = ClerkExpressRequireAuth({});
+
+// Route to create/update user in MongoDB after Clerk authentication
+app.post('/sync-user', requireAuth, async (req, res) => {
+  try {
+      const clerkUserId = req.auth.userId;
+      const email = req.auth.claims.email;
+      const firstName = req.auth.claims.firstName;
+      const lastName = req.auth.claims.lastName;
+      const profileImageUrl = req.auth.claims.picture;
+
+      const user = await findOrCreateFromClerk({
+          id: clerkUserId,
+          emailAddresses: [{ emailAddress: email }],
+          firstName,
+          lastName,
+          profileImageUrl
+      });
+
+      res.json({ success: true, user });
+  } catch (error) {
+      console.error('Error syncing user:', error);
+      res.status(500).json({ success: false, error: 'Failed to sync user' });
+  }
 });
 
 // Upload video from Uploadcare to Cloudinary
@@ -126,7 +180,7 @@ app.post('/transform', async (req, res) => {
   });
 
   
-  const PORT = process.env.PORT || 3001;
+  const PORT = process.env.PORT || 3005;
   app.listen(PORT, () => {
     console.log(`Server running on port ${PORT}`);
   });
