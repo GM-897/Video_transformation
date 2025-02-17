@@ -171,7 +171,7 @@ app.post('/transform', async (req, res) => {
     const { prompt } = req.body;
     const { request_id } = await fal.queue.submit("fal-ai/flux/dev", {
       input: { prompt },
-      webhookUrl: "https://your-ngrok-url.ngrok-free.app/webhook",
+      webhookUrl: "https://video-transformation.vercel.app/webhook",
     });
 
     // Initialize cache entry

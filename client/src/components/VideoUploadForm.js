@@ -29,7 +29,7 @@ function VideoUploadForm() {
 
   const fetchUserHistory = async () => {
     try {
-      const response = await fetch(`http://localhost:3005/api/history/${user.id}`);
+      const response = await fetch(`https://video-transformation.vercel.app/api/history/${user.id}`);
       if (response.ok) {
         const data = await response.json();
         setTransformationHistory(data.history);
@@ -47,7 +47,7 @@ function VideoUploadForm() {
 
 //   try {
 //     // Start the job and get requestId
-//     const response = await fetch(`${process.env.REACT_APP_API_URL}/transform`, {
+//     const response = await fetch(`https://video-transformation.vercel.app/transform`, {
         // method: 'POST',
         // headers: {
           // 'Content-Type': 'application/json',
@@ -59,7 +59,7 @@ function VideoUploadForm() {
 //     // Polling function
 //     const checkResult = async () => {
 //       try {
-//         const result = await axios.get(`http://localhost:3005/result/${requestId}`);
+//         const result = await axios.get(`https://video-transformation.vercel.app/result/${requestId}`);
 //         const { status, video.url, error } = result.data;
 
 //         if (status === 'completed') {
@@ -105,7 +105,7 @@ function VideoUploadForm() {
 
     try {
       // const response = await fetch(`${process.env.REACT_APP_API_URL}/transform`, {
-      const response = await fetch(`http://localhost:3005/transform`, {
+      const response = await fetch(`https://video-transformation.vercel.app/transform`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
