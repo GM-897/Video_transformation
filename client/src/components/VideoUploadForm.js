@@ -77,6 +77,15 @@ function VideoUploadForm() {
     }
   };
 
+  const handleHistoryItemClick = (item) => {
+    setPrompt(item.parameters.prompt);
+    setNumInferenceSteps(item.parameters.num_inference_steps || 30);
+    setAspectRatio(item.parameters.aspect_ratio || '16:9');
+    setResolution(item.parameters.resolution || '720p');
+    setNumFrames(item.parameters.num_frames || 129);
+    setTransformedVideoUrl(item.transformedUrl || '');
+  };
+
   const getRightSideContent = () => {
     if (isProcessing) {
       return (
@@ -114,7 +123,11 @@ function VideoUploadForm() {
     }
 
     return transformationHistory.map((item, index) => (
-      <div key={index} className={styles.historyItem}>
+      <div 
+        key={index} 
+        className={styles.historyItem}
+        onClick={() => handleHistoryItemClick(item)}
+      >
         <p className={styles.historyPrompt}>{item.parameters.prompt}</p>
         <small className={styles.historyDate}>
           {new Date(item.createdAt).toLocaleDateString()}
