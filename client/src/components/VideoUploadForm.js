@@ -29,7 +29,7 @@ function VideoUploadForm() {
 
   const fetchUserHistory = async () => {
     try {
-      const response = await fetch(`${process.env.REACT_APP_API_URL}/api/history/${user.id}`);
+      const response = await fetch(`http://localhost:3005/api/history/${user.id}`);
       if (response.ok) {
         const data = await response.json();
         setTransformationHistory(data.history);
@@ -87,7 +87,6 @@ function VideoUploadForm() {
 // };
   const handleSubmit = async (e) => {
     e.preventDefault();
-
     if (!isSignedIn) {
       setShowSignInPrompt(true);
       return;
@@ -105,7 +104,8 @@ function VideoUploadForm() {
     };
 
     try {
-      const response = await fetch(`${process.env.REACT_APP_API_URL}/transform`, {
+      // const response = await fetch(`${process.env.REACT_APP_API_URL}/transform`, {
+      const response = await fetch(`http://localhost:3005/transform`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -114,7 +114,7 @@ function VideoUploadForm() {
       });
 
       if (!response.ok) {
-        throw new Error('Video Generation failed');
+        throw new Error('Video transformation failed');
       }
 
       const result = await response.json();
@@ -176,7 +176,7 @@ function VideoUploadForm() {
 
   const renderHistoryItems = () => {
     if (!transformationHistory.length) {
-      return <div className={styles.historyItem}>No Generations yet</div>;
+      return <div className={styles.historyItem}>No transformations yet</div>;
     }
 
     return transformationHistory.map((item, index) => (
@@ -189,13 +189,6 @@ function VideoUploadForm() {
         <small className={styles.historyDate}>
           {new Date(item.createdAt).toLocaleDateString()}
         </small>
-        {/* <div className={styles.historyThumbnail}>
-          <video 
-            src={item.transformedUrl} 
-            width="100" 
-            controls
-          ></video>
-        </div> */}
       </div>
     ));
   };
@@ -238,6 +231,14 @@ function VideoUploadForm() {
               </div>
             )}
           </div>
+
+          {!isSignedIn && (
+            <div className={styles.signInOption}>
+              <button onClick={() => window.location.href = '/sign-in'} className={styles.signInButton}>
+                Sign In
+              </button>
+            </div>
+          )}
         </div>
       </div>
 
@@ -256,7 +257,7 @@ function VideoUploadForm() {
                   required 
                   placeholder="Describe how you want to transform the video..."
                   className={styles.input}
-                  rows="1"
+                  rows="3"
                 />
               </div>
 
