@@ -1,22 +1,24 @@
-import { useNavigate } from 'react-router-dom';
-import { useAuthContext } from '../context/AuthContext';
 
-function ProtectedRoute({ children }) {
-  const { isLoaded, isSignedIn } = useAuthContext();
-  const navigate = useNavigate();
+// src/components/ProtectedRoute.js
 
-  if (!isLoaded) {
+import React from "react";
+import { Navigate } from "react-router-dom";
+import { useUser } from "@clerk/clerk-react";
+
+const ProtectedRoute = ({ children }) => {
+  const { isSignedIn, isLoading } = useUser();
+
+  if (isLoading) {
     return <div>Loading...</div>;
   }
 
   if (!isSignedIn) {
-    console.log("not signed in")
-    navigate('/sign-in');
-    console.log("signed in")
-    return null;
+    return <Navigate to="/sign-in" replace />;
   }
-  console.log("signed in",isSignedIn);
-  return children;
-}
 
-export default ProtectedRoute; 
+  return children;
+};
+
+export default ProtectedRoute;
+
+

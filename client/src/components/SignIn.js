@@ -1,9 +1,11 @@
-import { SignIn as ClerkSignIn } from '@clerk/clerk-react';
+import { SignIn as ClerkSignIn, SignedOut } from '@clerk/clerk-react';
 import styles from './Auth.module.css';
 
 function SignIn() {
   return (
+
     <div className={styles.authContainer}>
+      <SignedOut>
       <div className={styles.authCard}>
         <h1 className={styles.authTitle}>Welcome Back</h1>
         <ClerkSignIn 
@@ -15,11 +17,12 @@ function SignIn() {
           }}
           routing="path"
           path="/sign-in"
-          redirectUrl="http://localhost:3001/"
+          // redirectUrl="http://localhost:3001/"
           signUpUrl="/sign-up"
-        
-        />
+          
+          />
       </div>
+          </SignedOut>
     </div>
   );
 }
