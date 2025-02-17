@@ -1,15 +1,11 @@
-
 require('dotenv').config();
 const express = require('express');
 const cloudinary = require('cloudinary').v2;
 const axios = require('axios');
 const cors = require('cors');
-// const authRoutes = require('./routes/auth');
-const mongoose = require('mongoose');
 const { fal } = require("@fal-ai/client");
-const User = require('./models/User');
-const { ClerkExpressRequireAuth } = require('@clerk/clerk-sdk-node');
-
+const mongoose = require('mongoose');
+const VideoJob = require('./models/VideoJob');
 
 const app = express();
 app.use(cors());
@@ -26,54 +22,11 @@ cloudinary.config({
 fal.config({
   credentials: process.env.FAL_API_KEY
 });
-mongoose.connect(process.env.MONGODB_URI)
-  .then(() => console.log('Connected to MongoDB'))
-  .catch(err => console.error('MongoDB connection error:', err));
 
-  async function findOrCreateFromClerk(userData) {
-    try {
-        let user = await User.findOne({ clerkId: userData.id });
-        if (!user) {
-            user = await User.create({
-                clerkId: userData.id,
-                email: userData.emailAddresses[0].emailAddress, 
-                firstName: userData.firstName,
-                lastName: userData.lastName,
-                profileImageUrl: userData.profileImageUrl
-            });
-        }
-        return user;
-    } catch (error) {
-        console.error("Error in findOrCreateFromClerk:", error);
-        throw error;
-    }
-}
-
-// app.use('/api/auth', authRoutes);
-const requireAuth = ClerkExpressRequireAuth({});
-
-// Route to create/update user in MongoDB after Clerk authentication
-app.post('/sync-user', requireAuth, async (req, res) => {
-  try {
-      const clerkUserId = req.auth.userId;
-      const email = req.auth.claims.email;
-      const firstName = req.auth.claims.firstName;
-      const lastName = req.auth.claims.lastName;
-      const profileImageUrl = req.auth.claims.picture;
-
-      const user = await findOrCreateFromClerk({
-          id: clerkUserId,
-          emailAddresses: [{ emailAddress: email }],
-          firstName,
-          lastName,
-          profileImageUrl
-      });
-
-      res.json({ success: true, user });
-  } catch (error) {
-      console.error('Error syncing user:', error);
-      res.status(500).json({ success: false, error: 'Failed to sync user' });
-  }
+// Connect to MongoDB
+mongoose.connect(process.env.MONGODB_URI, {
+  useNewUrlParser: true,
+  useUnifiedTopology: true,
 });
 
 // Upload video from Uploadcare to Cloudinary
@@ -105,85 +58,130 @@ app.post('/api/upload', async (req, res) => {
 
 // New transformation endpoint
 app.post('/transform', async (req, res) => {
-    console.log("here")
+  try {
+    const {
+      prompt,
+      num_inference_steps,
+      aspect_ratio,
+      resolution,
+      num_frames,
+      userId,
+      userEmail,
+    } = req.body;
     
-    try {
-        const {
-            prompt,
-            num_inference_steps,
-            aspect_ratio,
-            resolution,
-            num_frames,
-            enable_safety_checker,
-            video_url,
-            strength
-        } = req.body;
-        
-    console.log("here")
-    console.log(req.body)
-    // const result = await fal.subscribe("fal-ai/hunyuan-video/video-to-video", {
-    const { request_id } = await fal.queue.submit("fal-ai/hunyuan-video/video-to-video", {
-        
-        input: {
-          prompt,
-          num_inference_steps,
-          aspect_ratio,
-          resolution,
-          num_frames,
-          enable_safety_checker,
-          video_url,
-          strength
-},
-        logs: true,
-        onQueueUpdate: (update) => {
-          if (update.status === "IN_PROGRESS") {
-            console.log(update.logs.map((log) => log.message));
-          }
-        },
-      });
-      console.log("status request")
-      console.log(request_id)
+    // Create initial job record
+    const videoJob = await VideoJob.create({
+      userId,
+      status: 'processing',
+      parameters: {
+        prompt,
+        num_inference_steps,
+        aspect_ratio,
+        resolution,
+        num_frames
+      }
+    });
 
-      let status = await fal.queue.status("fal-ai/hunyuan-video/video-to-video", {
-        requestId: request_id,
-        logs: true,
-      });
-      
-      console.log(status)
-    // await new Promise((resolve) => setTimeout(resolve, 60000));
+    // First part: FAL AI transformation
+    const { request_id } = await fal.queue.submit("fal-ai/hunyuan-video", {
+      input: {
+        prompt,
+      },
+      logs: true,
+      onQueueUpdate: (update) => {
+        if (update.status === "IN_PROGRESS") {
+          console.log(update.logs.map((log) => log.message));
+        }
+      },
+    });
+    
+    // Update job with FAL request ID
+    videoJob.falRequestId = request_id;
+    await videoJob.save();
+
+    // Monitor status
+    let status = await fal.queue.status("fal-ai/hunyuan-video", {
+      requestId: request_id,
+      logs: true,
+    });
+    
     while (status.status === "IN_PROGRESS" || status.status === "IN_QUEUE") {
       console.log("Waiting for the transformation to complete...");
-      await new Promise((resolve) => setTimeout(resolve, 5000)); // Wait for 5 seconds before checking again
-      status = await fal.queue.status("fal-ai/hunyuan-video/video-to-video", {
+      await new Promise((resolve) => setTimeout(resolve, 5000));
+
+      status = await fal.queue.status("fal-ai/hunyuan-video", {
         requestId: request_id,
         logs: true,
       });
     }
 
-      const result = await fal.queue.result("fal-ai/hunyuan-video/video-to-video", {
-        requestId: request_id
+    const result = await fal.queue.result("fal-ai/hunyuan-video", {
+      requestId: request_id
+    });
+
+    console.log(result);
+
+    if (result.data && result.data.video.url) {
+      // Upload transformed video to Cloudinary
+      const cloudinaryResult = await cloudinary.uploader.upload(result.data.video.url, {
+        resource_type: 'video',
+        folder: 'transformed-videos'
       });
 
-      console.log("result is here")
-      console.log(result.data);
-  
+      // Update job with success status and transformed URL
+      videoJob.status = 'completed';
+      videoJob.transformedUrl = cloudinaryResult.secure_url;
+      await videoJob.save();
+
       res.json({
         message: 'Video transformation completed',
-        result: result.data,
-        requestId: result.requestId
+        result: {
+          video: {
+            url: cloudinaryResult.secure_url
+          }
+        }
       });
-  
-    } catch (error) {
-      console.error('Error:', error);
-      res.status(500).json({ error: 'Video transformation failed' });
+    } else {
+      throw new Error('Transformation did not return a video URL');
     }
-  });
 
-  
-  const PORT = process.env.PORT || 3005;
-  app.listen(PORT, () => {
-    console.log(`Server running on port ${PORT}`);
-  });
+  } catch (error) {
+    console.error('Error:', error);
+    // Update job with failed status
+    if (videoJob) {
+      videoJob.status = 'failed';
+      videoJob.logs.push({
+        message: error.message || 'Video transformation failed'
+      });
+      await videoJob.save();
+    }
+    res.status(500).json({ error: 'Video transformation failed' });
+  }
+});
+
+// Update history endpoint to use VideoJob model
+app.get('/api/history/:userId', async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const history = await VideoJob.find({ 
+      userId,
+      status: 'completed',
+      isDeleted: false 
+    })
+      .sort({ createdAt: -1 })
+      .limit(10);
+    res.json({ history });
+  } catch (error) {
+    console.error('Error fetching history:', error);
+    res.status(500).json({ error: 'Failed to fetch history' });
+  }
+});
+
+const PORT = process.env.PORT || 3001;
+
+app.listen(PORT, () => {
+  console.log(`Server running on port ${PORT}`);
+});
   
 
 

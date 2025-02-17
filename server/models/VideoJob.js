@@ -1,17 +1,18 @@
-import mongoose from 'mongoose';
+const mongoose = require('mongoose');
 
 const videoJobSchema = new mongoose.Schema(
   {
     userId: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: 'User',
+      // ref: 'User',
+      type: String,
       required: true,
       // index: true // Speeds up queries for user history
     },
-    sourceUrl: {
-      type: String,
-      required: true
-    },
+    // sourceUrl: {
+    //   type: String,
+    //   required: true
+    // },
     transformedUrl: {
       type: String
     },
@@ -47,4 +48,4 @@ const videoJobSchema = new mongoose.Schema(
 
 // videoJobSchema.index({ userId: 1, createdAt: -1 });
 
-export const VideoJob = mongoose.model('VideoJob', videoJobSchema);
+module.exports = mongoose.model('VideoJob', videoJobSchema);
