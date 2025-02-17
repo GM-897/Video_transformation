@@ -16,14 +16,13 @@ if(!clerkPubKey){
 console.log("Clerk Publishable Key:", clerkPubKey);
 
 const root = ReactDOM.createRoot(document.getElementById('root'));
+// index.js
 root.render(
   <React.StrictMode>
     <ClerkProvider publishableKey={clerkPubKey} afterSignOutUrl='/sign-in'>
-       <AuthProvider>
-        <BrowserRouter>
-    <App />
-    </BrowserRouter>
-      </AuthProvider>
-     </ClerkProvider>
+      <BrowserRouter>
+        <App />
+      </BrowserRouter>
+    </ClerkProvider>
   </React.StrictMode>
 );

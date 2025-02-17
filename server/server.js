@@ -86,6 +86,7 @@ app.post('/transform', async (req, res) => {
     const { request_id } = await fal.queue.submit("fal-ai/hunyuan-video", {
       input: {
         prompt,
+        webhook: `${process.env.REACT_WEB_HOOK_URL}/webhook`
       },
       logs: true,
       onQueueUpdate: (update) => {
@@ -105,6 +106,7 @@ app.post('/transform', async (req, res) => {
       logs: true,
     });
     
+    //remove this while loop if webhook is implemented
     while (status.status === "IN_PROGRESS" || status.status === "IN_QUEUE") {
       console.log("Waiting for the transformation to complete...");
       await new Promise((resolve) => setTimeout(resolve, 5000));
@@ -159,6 +161,69 @@ app.post('/transform', async (req, res) => {
   }
 });
 
+// Comment out the duplicate transform endpoint and related code
+/*
+const resultsCache = new Map();
+
+app.post('/transform', async (req, res) => {
+  try {
+    const { prompt } = req.body;
+    const { request_id } = await fal.queue.submit("fal-ai/flux/dev", {
+      input: { prompt },
+      webhookUrl: "https://your-ngrok-url.ngrok-free.app/webhook",
+    });
+
+    // Initialize cache entry
+    resultsCache.set(request_id, {
+      status: 'processing',
+      imageUrl: null,
+      error: null,
+    });
+
+    // Send request_id to frontend
+    res.json({ requestId: request_id });
+  } catch (error) {
+    console.error('Error:', error);
+    res.status(500).json({ error: 'Failed to submit request' });
+  }
+});
+
+app.post('/webhook', async (req, res) => {
+  try {
+    const { request_id, status, payload, error } = req.body;
+    const cached = resultsCache.get(request_id) || {};
+
+    if (status === 'OK') {
+      cached.status = 'completed';
+      cached.imageUrl = payload.images[0].url;
+      cached.error = null;
+    } else if (status === 'ERROR') {
+      cached.status = 'error';
+      cached.error = error || 'Unknown error';
+    }
+
+    resultsCache.set(request_id, cached);
+    res.status(200).json({ message: 'Webhook processed' });
+  } catch (err) {
+    console.error('Webhook error:', err);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+//polling from frontend
+
+app.get('/result/:requestId', (req, res) => {
+  const { requestId } = req.params;
+  const result = resultsCache.get(requestId);
+
+  if (!result) {
+    return res.status(404).json({ error: 'Request not found' });
+  }
+
+  res.json(result);
+});
+*/
+
 // Update history endpoint to use VideoJob model
 app.get('/api/history/:userId', async (req, res) => {
   try {
@@ -176,6 +241,8 @@ app.get('/api/history/:userId', async (req, res) => {
     res.status(500).json({ error: 'Failed to fetch history' });
   }
 });
+
+
 
 const PORT = process.env.PORT || 3001;
 

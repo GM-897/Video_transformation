@@ -1,7 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import styles from './VideoUploadForm.module.css';
 import { FaBars, FaTimes, FaHistory, FaUser, FaMagic } from 'react-icons/fa';
-import { useUser } from "@clerk/clerk-react";
+import { TbLayoutSidebarLeftCollapseFilled } from "react-icons/tb";
+import { FiLogOut } from 'react-icons/fi';
+import { useUser, useClerk } from "@clerk/clerk-react";
+import axios from 'axios';
 
 function VideoUploadForm() {
   const [prompt, setPrompt] = useState('');
@@ -14,7 +17,9 @@ function VideoUploadForm() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [isProcessing, setIsProcessing] = useState(false);
   const { user, isSignedIn } = useUser();
+  const { signOut } = useClerk();
   const [transformationHistory, setTransformationHistory] = useState([]);
+  const [showSignInPrompt, setShowSignInPrompt] = useState(false);
 
   useEffect(() => {
     if (isSignedIn) {
@@ -24,7 +29,7 @@ function VideoUploadForm() {
 
   const fetchUserHistory = async () => {
     try {
-      const response = await fetch(`${process.env.REACT_APP_API_URL}/api/history/${user.id}`);//3005
+      const response = await fetch(`${process.env.REACT_APP_API_URL}/api/history/${user.id}`);
       if (response.ok) {
         const data = await response.json();
         setTransformationHistory(data.history);
@@ -34,8 +39,59 @@ function VideoUploadForm() {
     }
   };
 
+//handle submit for webhook logic
+// const handleSubmit = async (e) => {
+//   e.preventDefault();
+//   setIsLoading(true);
+//   setError('');
+
+//   try {
+//     // Start the job and get requestId
+//     const response = await fetch(`${process.env.REACT_APP_API_URL}/transform`, {
+        // method: 'POST',
+        // headers: {
+          // 'Content-Type': 'application/json',
+        // },
+        // body: JSON.stringify(requestData),
+      // });
+//     const { requestId } = response.data;
+
+//     // Polling function
+//     const checkResult = async () => {
+//       try {
+//         const result = await axios.get(`http://localhost:3005/result/${requestId}`);
+//         const { status, video.url, error } = result.data;
+
+//         if (status === 'completed') {
+//           setTransformedVideoUrl(video.url);
+//           setIsLoading(false);
+//         } else if (status === 'error') {
+//           setError(error || 'Image generation failed');
+//           setIsLoading(false);
+//         } else {
+//           // Continue polling every 2 seconds
+//           setTimeout(checkResult, 2000);
+//         }
+//       } catch (err) {
+//         setError('Error checking result');
+//         setIsLoading(false);
+//       }
+//     };
+
+//     // Initial poll
+//     checkResult();
+//   } catch (err) {
+//     console.error('Error:', err);
+//     setIsLoading(false);
+//   }
+// };
   const handleSubmit = async (e) => {
     e.preventDefault();
+
+    if (!isSignedIn) {
+      setShowSignInPrompt(true);
+      return;
+    }
     setIsProcessing(true);
 
     const requestData = {
@@ -50,7 +106,6 @@ function VideoUploadForm() {
 
     try {
       const response = await fetch(`${process.env.REACT_APP_API_URL}/transform`, {
-      // const response = await fetch(`http://localhost:3001/transform`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -59,13 +114,11 @@ function VideoUploadForm() {
       });
 
       if (!response.ok) {
-        throw new Error('Video transformation failed');
+        throw new Error('Video Generation failed');
       }
 
       const result = await response.json();
 
-      console.log(result);
-      console.log(result.result.video.url);
       if (result.result && result.result.video.url) {
         setTransformedVideoUrl(result.result.video.url);
         fetchUserHistory();
@@ -75,6 +128,10 @@ function VideoUploadForm() {
     } finally {
       setIsProcessing(false);
     }
+  };
+
+  const handleSignOut = () => {
+    signOut();
   };
 
   const handleHistoryItemClick = (item) => {
@@ -119,7 +176,7 @@ function VideoUploadForm() {
 
   const renderHistoryItems = () => {
     if (!transformationHistory.length) {
-      return <div className={styles.historyItem}>No transformations yet</div>;
+      return <div className={styles.historyItem}>No Generations yet</div>;
     }
 
     return transformationHistory.map((item, index) => (
@@ -132,13 +189,13 @@ function VideoUploadForm() {
         <small className={styles.historyDate}>
           {new Date(item.createdAt).toLocaleDateString()}
         </small>
-        <div className={styles.historyThumbnail}>
+        {/* <div className={styles.historyThumbnail}>
           <video 
             src={item.transformedUrl} 
             width="100" 
             controls
           ></video>
-        </div>
+        </div> */}
       </div>
     ));
   };
@@ -151,7 +208,7 @@ function VideoUploadForm() {
           className={styles.sidebarToggle}
           onClick={() => setIsSidebarOpen(!isSidebarOpen)}
         >
-          {isSidebarOpen ? <FaTimes /> : <FaBars />}
+          <TbLayoutSidebarLeftCollapseFilled />
         </button>
         
         <div className={styles.sidebarContent}>
@@ -164,6 +221,11 @@ function VideoUploadForm() {
               )}
             </div>
             <h3>{user?.fullName || 'Guest User'}</h3>
+            {isSignedIn && (
+              <button onClick={handleSignOut} className={styles.signOutButton}>
+                <FiLogOut color="red" /> Sign Out
+              </button>
+            )}
           </div>
           
           <div className={styles.historySection}>
@@ -188,13 +250,13 @@ function VideoUploadForm() {
             <form onSubmit={handleSubmit} className={styles.form}>
               <div className={styles.formGroup}>
                 <label>Prompt:</label>
-                <input 
-                  type="text" 
+                <textarea 
                   value={prompt} 
                   onChange={(e) => setPrompt(e.target.value)} 
                   required 
                   placeholder="Describe how you want to transform the video..."
                   className={styles.input}
+                  rows="1"
                 />
               </div>
 
@@ -267,7 +329,8 @@ function VideoUploadForm() {
 
               <button 
                 type="submit" 
-                className={styles.submitButton}
+                className={`${styles.submitButton} ${!isSignedIn ? styles.disabledButton : ''}`}
+                disabled={!isSignedIn}
               >
                 Transform Video
               </button>
@@ -280,6 +343,22 @@ function VideoUploadForm() {
           </div>
         </div>
       </div>
+
+      {/* Sign-In Prompt Modal */}
+      {showSignInPrompt && (
+        <div className={styles.signInModal}>
+          <div className={styles.modalContent}>
+            <h3>Please Sign In</h3>
+            <p>You need to sign in to transform videos.</p>
+            <button onClick={() => setShowSignInPrompt(false)} className={styles.closeModalButton}>
+              Close
+            </button>
+            <button onClick={() => window.location.href = '/sign-in'} className={styles.signInButton}>
+              Sign In
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

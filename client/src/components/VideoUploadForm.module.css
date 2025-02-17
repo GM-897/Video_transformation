@@ -44,6 +44,7 @@
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
+  margin-bottom: 1.5rem;
 }
 
 .formGroup label {
@@ -53,7 +54,7 @@
 
 .input, .select {
   padding: 0.75rem;
-  border: 1px solid #e2e8f0;
+  border: 1px solid #ccc;
   border-radius: 6px;
   font-size: 1rem;
   transition: border-color 0.2s;
@@ -213,7 +214,7 @@
 
 .sidebar {
   width: 20%;
-  background-color: rgb(212, 227, 227);
+  background-color: white;
   color: black;
   padding: 1rem;
   position: relative;
@@ -245,26 +246,20 @@
 
 .mainContent {
   display: flex;
+  gap: 1.5px;
+  align-items: stretch;
+  height: calc(100vh - 100px);
+}
+
+.formSection, .resultSection {
+  border: 1px solid #ccc;
+  border-radius: 5px;
+  padding: 2rem;
+  margin-bottom: 1rem;
+  margin-top: 2rem;
   flex: 1;
-  height: calc(100vh - 100px); /* Adjust based on title height */
-}
-
-.formSection {
-  width: 50%;
-  padding: 2rem;
-  border-right: 1px solid #e2e8f0;
-  overflow-y: auto;
-}
-
-.resultSection {
-  width: 50%;
-  padding: 2rem;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  align-items: center;
-  background-color: #f8f9fa;
-  overflow-y: auto;
+  min-height: 400px;
+  margin-right: 1.5px;
 }
 
 .placeholderContent {
@@ -352,9 +347,9 @@
   right: 1rem;
   background: none;
   border: none;
-  color: white;
+  color: black;
   cursor: pointer;
-  font-size: 1.2rem;
+  font-size: 1.5rem;
 }
 
 .sidebarContent {
@@ -400,8 +395,8 @@
 }
 
 .historyItem:hover {
-  background-color: #f0f0f0; /* Light gray background on hover */
-  transform: scale(1.02); /* Slightly enlarge the item */
+  background-color: #f0f0f0;
+  transform: scale(1.02);
 }
 
 .historyPrompt {
@@ -426,4 +421,78 @@
   height: 80px;
   border-radius: 50%;
   object-fit: cover;
+}
+
+.signInModal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
+.modalContent {
+  background-color: white;
+  padding: 20px;
+  border-radius: 8px;
+  text-align: center;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+
+.closeModalButton, .signInButton {
+  margin: 10px;
+  padding: 10px 20px;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+}
+
+.closeModalButton {
+  background-color: #ccc;
+}
+
+.signInButton {
+  background-color: #007bff;
+  color: white;
+}
+
+.signOutButton {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background-color: #4299e1;
+  color: black;
+  cursor: pointer;
+  font-size: 1rem;
+  margin-top: 1rem;
+  padding: 0.5rem 1rem;
+  border: none;
+  border-radius: 6px;
+  transition: background-color 0.2s;
+}
+
+.signOutButton:hover {
+  background-color: #3182ce;
+}
+
+.disabledButton {
+  background-color: #d3cce3;
+  cursor: not-allowed;
+  opacity: 0.7;
+}
+
+.historySection h4 {
+  display: flex;
+  align-items: center;
+  color: #666;
+  margin-bottom: 1rem;
+}
+
+.historySection h4 svg {
+  margin-right: 0.5rem;
 }

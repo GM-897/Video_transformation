@@ -7,24 +7,25 @@ import VideoUploadForm from './components/VideoUploadForm';
 import PromptToImage from './components/promptToImage';
 
 
+// App.js
 function App() {
   return (
-    
-          <Routes>
-            <Route path="/sign-in" element={<SignIn />} />
-            {/* <Route path="/sign-in/sso-callback" element={<RedirectToSignIn />} /> */}
-            {/* <Route path="/sign-up" element={<SignedOut><SignUp /></SignedOut>} /> */}
-            <Route
-              path="/"
-              element={
-                <SignedIn>
-                  <VideoUploadForm />
-                  {/*  <PromptToImage /> */}
-                 </SignedIn>
-              }
-            />
-          </Routes>
-       
+    <Routes>
+      <Route path="/sign-in" element={<SignIn />} />
+      <Route
+        path="/"
+        element={
+          <>
+            <SignedIn>
+              <VideoUploadForm />
+            </SignedIn>
+            <SignedOut>
+              <RedirectToSignIn />
+            </SignedOut>
+          </>
+        }
+      />
+    </Routes>
   );
 }
 
