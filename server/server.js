@@ -86,7 +86,7 @@ app.post('/transform', async (req, res) => {
     const { request_id } = await fal.queue.submit("fal-ai/hunyuan-video", {
       input: {
         prompt,
-        webhook: `${process.env.REACT_WEB_HOOK_URL}/webhook`
+        // webhook: `${process.env.REACT_WEB_HOOK_URL}/webhook`
       },
       logs: true,
       onQueueUpdate: (update) => {
@@ -159,6 +159,7 @@ app.post('/transform', async (req, res) => {
     }
     res.status(500).json({ error: 'Video transformation failed' });
   }
+
 });
 
 // Comment out the duplicate transform endpoint and related code
@@ -244,11 +245,13 @@ app.get('/api/history/:userId', async (req, res) => {
 
 
 
-const PORT = process.env.PORT || 3001;
+const PORT = process.env.PORT || 3005;
 
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });
+app.get('/', (req, res) => {
+  res.send("Manmohit Video Transformation Studio");
+});
   
-
 
